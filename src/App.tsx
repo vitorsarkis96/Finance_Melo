@@ -282,4 +282,238 @@ function TabDash({d,mrr,arr,totalRec,totalCustos,catTotals,lucro,mBruta,mLiq,ati
             <div style={{fontSize:20,fontWeight:700,color:hColor,marginBottom:14}}>{hLabel}</div>
             {[{l:"Margem Líquida",v:Math.max(0,mLiq),max:40},{l:"Recorrência",v:totalRec>0?Math.min(100,(mrr/totalRec)*100):0,max:100},{l:"Retenção",v:Math.max(0,100-churnRate*4),max:100}].map(m=>(
               <div key={m.l} style={{marginBottom:12}}>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"va
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--ink2)",marginBottom:4}}><span>{m.l}</span><span style={{color:"var(--ink)"}}>{P(m.v)}</span></div>
+                <div className="prog-track"><div className="prog-fill" style={{width:`${Math.min(100,(m.v/m.max)*100)}%`,background:hColor}}/></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="card">
+        <div className="sh">Custos por Categoria</div>
+        <div className="bar-wrap">
+          {COST_CATS.filter((c:any)=>catTotals[c.key]>0).sort((a:any,b:any)=>catTotals[b.key]-catTotals[a.key]).map((c:any)=>(
+            <div key={c.key} className="bar-row">
+              <div className="bar-name">{c.icon} {c.label}</div>
+              <div className="bar-track"><div className="bar-fill" style={{width:`${totalCustos>0?(catTotals[c.key]/totalCustos)*100:0}%`,background:c.color}}/></div>
+              <div className="bar-val">{R(catTotals[c.key])}</div>
+            </div>
+          ))}
+        </div>
+        <hr className="div"/>
+        <div style={{display:"flex",justifyContent:"space-between"}}>
+          <div><div className="kpi-label">Total Custos</div><div style={{fontSize:22,fontWeight:700,color:"var(--red)"}}>{R(totalCustos)}</div></div>
+          <div style={{textAlign:"right"}}><div className="kpi-label">Resultado</div><div style={{fontSize:22,fontWeight:700,color:lucro>=0?"var(--lime)":"var(--red)"}}>{R(lucro)}</div></div>
+        </div>
+      </div>
+    </div>
+    {ativos.length>0&&<div className="card" style={{marginTop:14}}>
+      <div className="sh">Clientes Ativos — Concentração de Receita</div>
+      <table className="tbl">
+        <thead><tr><th>Cliente</th><th>MRR</th><th>Meses</th><th>LTV Est.</th><th>% Receita</th><th>Status</th></tr></thead>
+        <tbody>
+          {[...ativos].sort((a:any,b:any)=>b.mrr-a.mrr).map((c:any)=>{
+            const cr=churnRate>0?churnRate/100:1/24;
+            return <tr key={c.id}>
+              <td style={{fontWeight:500}}>{c.nome}</td>
+              <td style={{color:"var(--lime)"}}>{R(c.mrr)}</td>
+              <td style={{color:"var(--ink2)"}}>{c.meses}m</td>
+              <td style={{color:"var(--amber)"}}>{R(c.mrr/cr)}</td>
+              <td><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:3,background:"var(--s3)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${totalRec>0?(c.mrr/totalRec)*100:0}%`,background:"var(--lime)",borderRadius:2}}/></div><span style={{fontSize:11,color:"var(--ink2)",width:36}}>{P(totalRec>0?(c.mrr/totalRec)*100:0)}</span></div></td>
+              <td><span className="badge b-lime">ATIVO</span></td>
+            </tr>;
+          })}
+        </tbody>
+      </table>
+    </div>}
+  </div>;
+}
+
+function TabRec({d,mrr,totalRec,addRec,delRec,updRec,nwSet,nwGet,nwClr}:any){
+  const n=nwGet("rec");
+  return <div>
+    <div className="g3">
+      <KPI label="Receita Total" value={R(totalRec)} sub="entradas do mês" color="var(--ink)"/>
+      <KPI label="MRR" value={R(mrr)} sub="recorrente" color="var(--lime)"/>
+      <KPI label="One-Time" value={R(totalRec-mrr)} sub="pontual/projeto" color="var(--amber)"/>
+    </div>
+    <div className="card">
+      <div className="sh">Entradas do Mês</div>
+      {d.receitas.length>0&&<table className="tbl" style={{marginBottom:16}}>
+        <thead><tr><th>Descrição</th><th>Tipo</th><th>Valor</th><th/></tr></thead>
+        <tbody>{d.receitas.map((r:any)=>(
+          <tr key={r.id}>
+            <td><input type="text" value={r.desc} onChange={e=>updRec(r.id,"desc",e.target.value)}/></td>
+            <td><select value={r.tipo} onChange={e=>updRec(r.id,"tipo",e.target.value)} style={{width:"auto"}}><option value="recorrente">Recorrente (MRR)</option><option value="pontual">Pontual</option><option value="projeto">Projeto</option></select></td>
+            <td><input type="number" value={r.val} onChange={e=>updRec(r.id,"val",+e.target.value||0)} style={{width:130}}/></td>
+            <td><button className="btn-del" onClick={()=>delRec(r.id)}>×</button></td>
+          </tr>
+        ))}</tbody>
+      </table>}
+      <div className="add-row">
+        <div style={{fontSize:10,color:"var(--ink2)",letterSpacing:1,marginBottom:10}}>+ NOVA ENTRADA</div>
+        <div className="add-grid">
+          <div style={{flex:3,minWidth:160}}><div className="field-label">Descrição</div><input type="text" value={n.desc||""} placeholder="Ex: Retainer cliente" onChange={e=>nwSet("rec","desc",e.target.value)}/></div>
+          <div style={{flex:2,minWidth:120}}><div className="field-label">Tipo</div><select value={n.tipo||"recorrente"} onChange={e=>nwSet("rec","tipo",e.target.value)}><option value="recorrente">Recorrente (MRR)</option><option value="pontual">Pontual</option><option value="projeto">Projeto</option></select></div>
+          <div style={{flex:1,minWidth:100}}><div className="field-label">Valor (R$)</div><input type="number" value={n.val||""} placeholder="0,00" onChange={e=>nwSet("rec","val",+e.target.value||0)}/></div>
+          <button className="btn btn-lime" style={{alignSelf:"flex-end"}} onClick={()=>{if(n.desc){addRec({desc:n.desc,tipo:n.tipo||"recorrente",val:n.val||0});nwClr("rec");}}}>Adicionar</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function TabCost({d,catTotals,totalCustos,addCost,delCost,updCost,nwSet,nwGet,nwClr}:any){
+  const [openCat,setOpenCat]=useState<string|null>(null);
+  return <div>
+    <div className="g4" style={{marginBottom:16}}>
+      <KPI label="Total Custos" value={R(totalCustos)} color="var(--red)"/>
+      {COST_CATS.slice(0,3).map(c=><KPI key={c.key} label={c.label} value={R(catTotals[c.key])} color={c.color}/>)}
+    </div>
+    <div className="g4" style={{marginBottom:20}}>
+      {COST_CATS.slice(3,7).map(c=><KPI key={c.key} label={c.label} value={R(catTotals[c.key])} color={c.color}/>)}
+      <KPI label="Outros" value={R(catTotals.outros)} color="var(--ink2)"/>
+    </div>
+    {COST_CATS.map(cat=>{
+      const items=d.custos[cat.key]||[];
+      const total=catTotals[cat.key]||0;
+      const isOpen=openCat===cat.key;
+      const n=nwGet(`cost_${cat.key}`);
+      return <div key={cat.key} className="card" style={{marginBottom:10}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}} onClick={()=>setOpenCat(isOpen?null:cat.key)}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:18}}>{cat.icon}</span>
+            <div><div style={{fontWeight:600,fontSize:14}}>{cat.label}</div><div style={{fontSize:11,color:"var(--ink2)",marginTop:1}}>{cat.desc}</div></div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            <div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:700,color:cat.color}}>{R(total)}</div><div style={{fontSize:10,color:"var(--ink2)",letterSpacing:1}}>{items.length} item{items.length!==1?"s":""}</div></div>
+            <div style={{color:"var(--ink2)",fontSize:18,transform:isOpen?"rotate(180deg)":"none",transition:"transform .2s"}}>›</div>
+          </div>
+        </div>
+        {isOpen&&<div style={{marginTop:16}}>
+          <hr className="div" style={{margin:"0 0 14px"}}/>
+          {items.length>0&&<table className="tbl" style={{marginBottom:12}}>
+            <thead><tr><th>Descrição</th><th>Valor (R$)</th><th/></tr></thead>
+            <tbody>{items.map((x:any)=>(
+              <tr key={x.id}>
+                <td><input type="text" value={x.desc} onChange={e=>updCost(cat.key,x.id,"desc",e.target.value)}/></td>
+                <td><input type="number" value={x.val} onChange={e=>updCost(cat.key,x.id,"val",+e.target.value||0)} style={{width:130}}/></td>
+                <td><button className="btn-del" onClick={()=>delCost(cat.key,x.id)}>×</button></td>
+              </tr>
+            ))}</tbody>
+          </table>}
+          <div className="add-row" style={{marginTop:0}}>
+            <div style={{fontSize:10,color:"var(--ink2)",letterSpacing:1,marginBottom:10}}>+ NOVO ITEM</div>
+            <div className="add-grid">
+              <div style={{flex:3,minWidth:140}}><div className="field-label">Descrição</div><input type="text" value={n.desc||""} placeholder={cat.desc.split(",")[0]} onChange={e=>nwSet(`cost_${cat.key}`,"desc",e.target.value)}/></div>
+              <div style={{flex:1,minWidth:100}}><div className="field-label">Valor (R$)</div><input type="number" value={n.val||""} placeholder="0,00" onChange={e=>nwSet(`cost_${cat.key}`,"val",+e.target.value||0)}/></div>
+              <button className="btn btn-lime" style={{alignSelf:"flex-end"}} onClick={()=>{if(n.desc){addCost(cat.key,{desc:n.desc,val:n.val||0});nwClr(`cost_${cat.key}`)}}}>Adicionar</button>
+            </div>
+          </div>
+        </div>}
+      </div>;
+    })}
+  </div>;
+}
+
+function TabCli({d,ltv,avgMRR,ativos,churnRate,totalRec,addCli,delCli,updCli,nwSet,nwGet,nwClr}:any){
+  const n=nwGet("cli");
+  const cr=churnRate>0?churnRate/100:1/24;
+  return <div>
+    <div className="g4">
+      <KPI label="Clientes Ativos" value={ativos.length} sub="na carteira" color="var(--lime)"/>
+      <KPI label="LTV Médio" value={R(ltv)} sub="lifetime value" color="var(--amber)"/>
+      <KPI label="Ticket Médio (MRR)" value={R(avgMRR)} sub="por cliente ativo" color="var(--blue)"/>
+      <KPI label="Churn Rate" value={P(churnRate)} sub="% perdidos" color={churnRate<5?"var(--lime)":churnRate<15?"var(--amber)":"var(--red)"}/>
+    </div>
+    <div className="card">
+      <div className="sh">Base de Clientes</div>
+      <table className="tbl" style={{marginBottom:14}}>
+        <thead><tr><th>Nome</th><th>MRR</th><th>Meses</th><th>LTV Est.</th><th>% Rec.</th><th>Status</th><th/></tr></thead>
+        <tbody>{d.clientes.map((c:any)=>(
+          <tr key={c.id}>
+            <td><input type="text" value={c.nome} onChange={e=>updCli(c.id,"nome",e.target.value)} style={{width:160}}/></td>
+            <td><input type="number" value={c.mrr} onChange={e=>updCli(c.id,"mrr",+e.target.value||0)} style={{width:100}}/></td>
+            <td><input type="number" value={c.meses} onChange={e=>updCli(c.id,"meses",+e.target.value||0)} style={{width:60}}/></td>
+            <td style={{color:"var(--amber)"}}>{R(c.mrr/cr)}</td>
+            <td style={{color:"var(--ink2)",fontSize:11}}>{P(totalRec>0?(c.mrr/totalRec)*100:0)}</td>
+            <td><select value={c.ativo?"ativo":"churned"} onChange={e=>updCli(c.id,"ativo",e.target.value==="ativo")} style={{width:"auto"}}><option value="ativo">Ativo</option><option value="churned">Churned</option></select></td>
+            <td><button className="btn-del" onClick={()=>delCli(c.id)}>×</button></td>
+          </tr>
+        ))}</tbody>
+      </table>
+      <div className="add-row">
+        <div style={{fontSize:10,color:"var(--ink2)",letterSpacing:1,marginBottom:10}}>+ NOVO CLIENTE</div>
+        <div className="add-grid">
+          {[{k:"nome",l:"Nome",t:"text",f:3,ph:"Nome do cliente"},{k:"mrr",l:"MRR (R$)",t:"number",f:2,ph:"0"},{k:"meses",l:"Meses Ativo",t:"number",f:1,ph:"0"}].map((f:any)=>(
+            <div key={f.k} style={{flex:f.f,minWidth:80}}><div className="field-label">{f.l}</div><input type={f.t} value={n[f.k]||""} placeholder={f.ph} onChange={e=>nwSet("cli",f.k,f.t==="number"?+e.target.value||0:e.target.value)}/></div>
+          ))}
+          <button className="btn btn-lime" style={{alignSelf:"flex-end"}} onClick={()=>{if(n.nome){addCli({nome:n.nome,mrr:n.mrr||0,meses:n.meses||0,ativo:true});nwClr("cli");}}}>Adicionar</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function TabAlerts({lucro,mLiq,churnRate,mrr,totalRec,ativos,totalCustos,catTotals}:any){
+  const alerts:any[]=[];
+  if(lucro<0) alerts.push({t:"red",m:`Operação no prejuízo de ${R(Math.abs(lucro))}. Custos superam receitas em ${P(Math.abs(mLiq))}.`});
+  if(mLiq<15&&mLiq>=0) alerts.push({t:"amber",m:`Margem líquida em ${P(mLiq)} — abaixo dos 20% recomendados para agências.`});
+  if(churnRate>10) alerts.push({t:"red",m:`Churn crítico: ${P(churnRate)}. Você perde ${R(mrr/ativos.length||0)}/mês por cliente.`});
+  else if(churnRate>5) alerts.push({t:"amber",m:`Churn moderado: ${P(churnRate)}. Monitore NPS e entrega de resultados.`});
+  if(mrr<totalRec*0.5&&totalRec>0) alerts.push({t:"amber",m:`Apenas ${P((mrr/totalRec)*100)} da receita é recorrente. Priorize retainers.`});
+  if(ativos.length<4) alerts.push({t:"amber",m:`${ativos.length} clientes ativos — concentração de risco alta.`});
+  const equipeRatio=totalRec>0?(catTotals.equipe/totalRec)*100:0;
+  if(equipeRatio>50) alerts.push({t:"amber",m:`Custo de equipe representa ${P(equipeRatio)} da receita — acima do ideal de 40%.`});
+  if(alerts.length===0) alerts.push({t:"lime",m:"Todos os indicadores dentro dos parâmetros saudáveis."});
+  const recs=[
+    {text:`MRR atual ${R(mrr)} — próxima meta: ${R(mrr*1.2)} (+20%)`},
+    {text:"Mínimo ideal: 6 clientes ativos para diluir risco de concentração"},
+    {text:"Margem líquida alvo para agências: 25–35%"},
+    {text:"Churn saudável: < 3% ao mês. Onboarding e entrega são a chave"},
+    {text:"LTV:CAC alvo de 3:1. Calcule seu CAC por canal para validar"},
+    {text:"Ferramentas e programas: manter abaixo de 5% da receita"},
+  ];
+  const cls:any={red:"al-red",amber:"al-amber",lime:"al-lime",blue:"al-blue"};
+  return <div>
+    <div className="g2">
+      <div><div className="card" style={{marginBottom:14}}>
+        <div className="sh">Alertas Ativos</div>
+        {alerts.map((a,i)=><div key={i} className={`alert ${cls[a.t]}`}>{a.m}</div>)}
+      </div></div>
+      <div><div className="card">
+        <div className="sh">Benchmarks para Agências</div>
+        <table className="tbl">
+          <thead><tr><th>Métrica</th><th>Atual</th><th>Meta</th><th>Status</th></tr></thead>
+          <tbody>
+            {[
+              {l:"Margem Líquida",v:P(mLiq),meta:"> 25%",ok:mLiq>25},
+              {l:"Churn Rate",v:P(churnRate),meta:"< 3%",ok:churnRate<3},
+              {l:"Clientes Ativos",v:ativos.length,meta:"≥ 6",ok:ativos.length>=6},
+              {l:"% Recorrente",v:P(totalRec>0?(mrr/totalRec)*100:0),meta:"> 70%",ok:totalRec>0&&(mrr/totalRec)>0.7},
+              {l:"Custo Equipe/Rec",v:P(equipeRatio),meta:"< 40%",ok:equipeRatio<40},
+            ].map((r:any)=>(
+              <tr key={r.l}>
+                <td style={{fontWeight:500}}>{r.l}</td>
+                <td style={{color:r.ok?"var(--lime)":"var(--amber)"}}>{r.v}</td>
+                <td style={{color:"var(--ink2)",fontSize:12}}>{r.meta}</td>
+                <td><span className={`badge ${r.ok?"b-lime":"b-amber"}`}>{r.ok?"OK":"REVISAR"}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+    <div className="card">
+      <div className="sh">Recomendações Estratégicas</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        {recs.map((r,i)=>(
+          <div key={i} style={{display:"flex",gap:10,padding:"10px 14px",background:"var(--s2)",borderRadius:8,border:"1px solid var(--border)"}}>
+            <span style={{color:"var(--lime)",fontWeight:700,flexShrink:0}}>→</span>
+            <span style={{fontSize:12,color:"var(--ink2)",lineHeight:1.5}}>{r.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>;
+}
