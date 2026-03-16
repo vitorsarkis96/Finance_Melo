@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/asaas.js": {
+      "maxDuration": 30
+    }
+  }
+}
