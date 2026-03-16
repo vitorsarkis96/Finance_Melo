@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     const [pagos, vencidos, clientes, subs] = await Promise.all([
       getAll(`/payments?status=RECEIVED`),
       getAll(`/payments?status=OVERDUE&dueDate[le]=${trintaDias}`),
-      getAll(`/customers?isDeleted=false`),
+      getAll(`/customers`),
       getAll(`/subscriptions?status=ACTIVE`),
     ]);
 
