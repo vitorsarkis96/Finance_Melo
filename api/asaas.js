@@ -32,32 +32,18 @@ export default async function handler(req, res) {
   try {
     const trintaDias = new Date(Date.now() - 30*24*60*60*1000).toISOString().split("T")[0];
 
-    const [pagos, vencidos, clientes, subs] = await Promise.all([
+    const [pagos, vencidos, subs] = await Promise.all([
       getAll(`/payments?status=RECEIVED`),
       getAll(`/payments?status=OVERDUE&dueDate[le]=${trintaDias}`),
-      getAll(`/customers`),
       getAll(`/subscriptions?status=ACTIVE`),
     ]);
 
     const inadimplentes = new Set(vencidos.map(p => p.customer));
     const subsClientes = new Set(subs.map(s => s.customer));
-    const pagosClientes = new Set(pagos.map(p => p.customer));
-
-    const clientesFiltrados = clientes
-      .filter(c => subsClientes.has(c.id) || pagosClientes.has(c.id))
-      .map(c => ({
-        id: c.id,
-        nome: c.name,
-        mrr: subs.filter(s => s.customer === c.id).reduce((a, s) => a + (s.value || 0), 0),
-        meses: 0,
-        ativo: !inadimplentes.has(c.id),
-        origem: "asaas"
-      }));
 
     const hoje = new Date();
     const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0];
     const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0];
-
     const pagosDoMes = pagos.filter(p => p.paymentDate >= ini && p.paymentDate <= fim);
 
     const receitas = pagosDoMes.map(p => ({
@@ -67,6 +53,22 @@ export default async function handler(req, res) {
       val: p.value,
       origem: "asaas"
     }));
+
+    // Monta clientes a partir das assinaturas ativas
+    const clientesMap = new Map();
+    subs.forEach(s => {
+      if (!clientesMap.has(s.customer)) {
+        clientesMap.set(s.customer, {
+          id: s.customer,
+          nome: s.customer,
+          mrr: 0,
+          meses: 0,
+          ativo: !inadimplentes.has(s.customer),
+          origem: "asaas"
+        });
+      }
+      clientesMap.get(s.customer).mrr += s.value || 0;
+    });
 
     let mrr = 0;
     subs.forEach(s => {
@@ -79,7 +81,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       receitas,
-      clientes: clientesFiltrados,
+      clientes: Array.from(clientesMap.values()),
       mrr: Math.round(mrr * 100) / 100,
       totalRecebidoMes: receitas.reduce((a, p) => a + p.val, 0),
       inadimplentes: inadimplentes.size,
