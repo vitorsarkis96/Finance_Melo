@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "ASAAS_API_KEY não configurada" });
   }
 
-  const BASE = "https://api.asaas.com/api/v3";
+  const BASE = "https://www.asaas.com/api/v3";
   
   async function get(path) {
     const r = await fetch(`${BASE}${path}`, {
@@ -54,7 +54,6 @@ export default async function handler(req, res) {
       origem: "asaas"
     }));
 
-    // Monta clientes a partir das assinaturas ativas
     const clientesMap = new Map();
     subs.forEach(s => {
       if (!clientesMap.has(s.customer)) {
