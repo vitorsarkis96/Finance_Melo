@@ -90,6 +90,15 @@ select option{background:var(--s1);color:var(--ink)}
 .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink2)}
 .legend-dot{width:8px;height:8px;border-radius:2px}
 .empty{text-align:center;padding:32px;color:var(--ink3);font-size:13px}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.login-box{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:0 4px 24px #0000000f}
+.login-logo{font-size:24px;font-weight:700;letter-spacing:3px;color:var(--ink);margin-bottom:4px}
+.login-logo span{color:var(--lime)}
+.login-sub{font-size:12px;color:var(--ink3);margin-bottom:32px}
+.login-field{margin-bottom:16px}
+.login-err{background:var(--red-dim);border:1px solid #EF444425;color:#B91C1C;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px}
 @media(max-width:900px){.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.g4,.g3,.g2{grid-template-columns:1fr}.tabs{flex-wrap:wrap}}
 `;
@@ -152,7 +161,53 @@ function getMonth(data: any, key: string) {
   return data.months[key] || emptyMonth();
 }
 
+
+const PWD = "Mv102353!";
+
+function Login({ onLogin }: { onLogin: () => void }) {
+  const [val, setVal] = useState("");
+  const [err, setErr] = useState(false);
+
+  const submit = () => {
+    if (val === PWD) {
+      sessionStorage.setItem("melo_auth", "1");
+      onLogin();
+    } else {
+      setErr(true);
+      setVal("");
+    }
+  };
+
+  return (
+    <>
+      <style>{G}</style>
+      <div className="login-wrap">
+        <div className="login-box">
+          <div className="login-logo">MELO <span>HEALTH</span></div>
+          <div className="login-sub">Saúde financeira em tempo real</div>
+          {err && <div className="login-err">Senha incorreta. Tente novamente.</div>}
+          <div className="login-field">
+            <div className="field-label">Senha de acesso</div>
+            <input
+              type="password"
+              value={val}
+              placeholder="••••••••"
+              onChange={e => { setVal(e.target.value); setErr(false); }}
+              onKeyDown={e => e.key === "Enter" && submit()}
+              autoFocus
+            />
+          </div>
+          <button className="btn btn-dark" style={{ width: "100%", marginTop: 8, padding: "12px" }} onClick={submit}>
+            Entrar
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function App() {
+  const [auth, setAuth] = useState(() => sessionStorage.getItem("melo_auth") === "1");
   const today = new Date();
   const [data, save] = useStore();
   const [tab, setTab] = useState("dashboard");
@@ -248,6 +303,8 @@ export default function App() {
   const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y+1); } else setMonth(m => m+1); };
 
   const maxBar = Math.max(...yearData.map(m => Math.max(m.rec, m.cst)), 1);
+
+  if (!auth) return <Login onLogin={() => setAuth(true)} />;
 
   return (
     <>
