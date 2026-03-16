@@ -30,13 +30,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const hoje = new Date();
-    const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0];
-    const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0];
     const trintaDias = new Date(Date.now() - 30*24*60*60*1000).toISOString().split("T")[0];
 
     const [pagos, vencidos, clientes, subs] = await Promise.all([
-      getAll(`/payments?status=RECEIVED&paymentDate[ge]=${ini}&paymentDate[le]=${fim}`),
+      getAll(`/payments?status=RECEIVED`),
       getAll(`/payments?status=OVERDUE&dueDate[le]=${trintaDias}`),
       getAll(`/customers?isDeleted=false`),
       getAll(`/subscriptions?status=ACTIVE`),
@@ -57,7 +54,13 @@ export default async function handler(req, res) {
         origem: "asaas"
       }));
 
-    const receitas = pagos.map(p => ({
+    const hoje = new Date();
+    const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0];
+    const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0];
+
+    const pagosDoMes = pagos.filter(p => p.paymentDate >= ini && p.paymentDate <= fim);
+
+    const receitas = pagosDoMes.map(p => ({
       id: p.id,
       desc: p.description || "Cobrança Asaas",
       tipo: subsClientes.has(p.customer) ? "recorrente" : "pontual",
@@ -78,7 +81,7 @@ export default async function handler(req, res) {
       receitas,
       clientes: clientesFiltrados,
       mrr: Math.round(mrr * 100) / 100,
-      totalRecebidoMes: pagos.reduce((a, p) => a + p.value, 0),
+      totalRecebidoMes: receitas.reduce((a, p) => a + p.val, 0),
       inadimplentes: inadimplentes.size,
       assinaturasAtivas: subs.length,
       syncedAt: new Date().toISOString()
