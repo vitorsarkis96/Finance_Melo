@@ -33,16 +33,16 @@ export default async function handler(req, res) {
     const hoje = new Date();
     const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0];
     const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0];
+    const trintaDias = new Date(Date.now() - 30*24*60*60*1000).toISOString().split("T")[0];
 
     const [pagos, vencidos, clientes, subs] = await Promise.all([
       getAll(`/payments?status=RECEIVED&paymentDate[ge]=${ini}&paymentDate[le]=${fim}`),
-      getAll(`/payments?status=OVERDUE`),
+      getAll(`/payments?status=OVERDUE&dueDate[le]=${trintaDias}`),
       getAll(`/customers?isDeleted=false`),
       getAll(`/subscriptions?status=ACTIVE`),
     ]);
 
-    const trintaDias = new Date(Date.now() - 30*24*60*60*1000).toISOString().split("T")[0];
-    const inadimplentes = new Set(vencidos.filter(p => p.dueDate < trintaDias).map(p => p.customer));
+    const inadimplentes = new Set(vencidos.map(p => p.customer));
     const subsClientes = new Set(subs.map(s => s.customer));
     const pagosClientes = new Set(pagos.map(p => p.customer));
 
